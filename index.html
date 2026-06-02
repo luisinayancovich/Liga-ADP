@@ -361,7 +361,8 @@ const CDef={responsive:true,maintainAspectRatio:true,
 function mk(id,cfg){if(CH[id]){CH[id].destroy();delete CH[id];}CH[id]=new Chart(document.getElementById(id),cfg);}
 
 function renderKPIs(d){
-  const tot=d.reduce((a,v)=>a+v.sub_total,0);
+  const dAll=AV.filter(v=>F.semana.has(v.semana)&&F.familia.has(v.familia)&&F.pago.has(v.pago));
+const tot=dAll.reduce((a,v)=>a+v.sub_total,0);
   const totAll=AV.filter(v=>v.sub_total>0).reduce((a,v)=>a+v.sub_total,0);
   const qr=d.filter(v=>v.pago==='QR MP').reduce((a,v)=>a+v.sub_total,0);
   const cons=d.filter(v=>v.pago==='Consumición').reduce((a,v)=>a+v.sub_total,0);
