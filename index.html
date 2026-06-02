@@ -344,8 +344,7 @@ function tf(dim,val,el){
 }
 function rst(){F.semana=new Set(SEMS);F.familia=new Set(['Bebida','Comida','Kiosco','Insumos']);F.pago=new Set(['Efectivo','QR MP','Consumición']);document.querySelectorAll('.chip').forEach(c=>c.classList.add('active'));renderAll();}
 function setR(by,el){RBy=by;document.querySelectorAll('[id^="rb"]').forEach(c=>c.classList.remove('active'));el.classList.add('active');renderRnk();}
-function gf(){return AV.filter(v=>F.semana.has(v.semana)&&F.familia.has(v.familia)&&F.pago.has(v.pago)&&v.sub_total>0);}
-
+function gf(){return AV.filter(v=>F.semana.has(v.semana)&&F.familia.has(v.familia)&&F.pago.has(v.pago));}
 function fmt(n){
   if(n===null||n===undefined)return'—';
   if(Math.abs(n)>=1000000)return'$'+(n/1000000).toFixed(1).replace('.',',')+'M';
@@ -407,7 +406,7 @@ function renderAll(){
 }
 
 function renderRnk(){
-  const d=gf().filter(v=>!v.sub.includes('Vale'));
+  const d=gf();
   const bp={};d.forEach(v=>{if(!bp[v.sub])bp[v.sub]={fam:v.familia,qty:0,monto:0};bp[v.sub].qty+=v.qty;bp[v.sub].monto+=v.sub_total;});
   const srt=Object.entries(bp).sort((a,b)=>RBy==='monto'?b[1].monto-a[1].monto:b[1].qty-a[1].qty);
   const mx=srt[0]?(RBy==='monto'?srt[0][1].monto:srt[0][1].qty):1;
