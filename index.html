@@ -188,7 +188,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
     <div class="ccard">
       <div class="ct">Detalle por Semana</div>
       <table class="ctbl" style="margin-top:12px">
-        <thead><tr><th>Persona</th><th id="ch1"></th><th id="ch2"></th><th id="ch3"></th><th>Total</th></tr></thead>
+        <thead><tr><th>Persona</th><th>Total</th></tr></thead>
         <tbody id="cnbody"></tbody>
       </table>
       <div class="ibox"><b>⚠️ Recordá:</b> Cada consumición interna reduce el efectivo de caja y descuenta del stock. Siempre registrá con nombre del responsable.</div>
@@ -444,7 +444,7 @@ function renderStock(){
 
 function renderCons(){
   if(!AV.length)return;
-  const cv=AV.filter(v=>v.pago==='Consumición'&&v.sub_total>0);
+  const cv=AV.filter(v=>v.pago==='Consumición'&&v.sub_total!==0);
   const bp={};cv.forEach(v=>{const p=v.cons||'(Sin nombre)';if(!bp[p])bp[p]={};bp[p][v.semana]=(bp[p][v.semana]||0)+v.sub_total;});
   const tot=cv.reduce((a,v)=>a+v.sub_total,0),totV=AV.filter(v=>v.sub_total>0).reduce((a,v)=>a+v.sub_total,0);
   const pers=Object.keys(bp).sort((a,b)=>Object.values(bp[b]).reduce((x,y)=>x+y,0)-Object.values(bp[a]).reduce((x,y)=>x+y,0));
@@ -457,7 +457,9 @@ function renderCons(){
   CH['cCon']=new Chart(document.getElementById('cCon'),{type:'bar',
     data:{labels:pers,datasets:SEMS.map((s,i)=>({label:'Sem '+s,data:pers.map(p=>bp[p][s]||0),backgroundColor:['#ef4444cc','#f9716acc','#fca5a5cc'][i]||'#f9716acc',borderRadius:4,borderSkipped:false}))},
     options:{...CDef,plugins:{...CDef.plugins,legend:{position:'bottom',labels:{color:'#888',font:{size:11,family:'DM Sans'},padding:10}}}}});
-  SEMS.forEach((s,i)=>{const el=document.getElementById('ch'+(i+1));if(el)el.textContent='Sem '+s;});
+  const theadTr=document.querySelector('.ctbl thead tr');
+while(theadTr.children.length>2)theadTr.removeChild(theadTr.lastChild);
+SEMS.forEach((s,i)=>{const th=document.createElement('th');th.textContent='Sem '+s;theadTr.insertBefore(th,theadTr.lastChild);});
   document.getElementById('cnbody').innerHTML=pers.map(p=>{
     const ts=SEMS.map(s=>bp[p][s]||0);
     return`<tr><td style="font-weight:600">${p}</td>${ts.map(t=>`<td>${fmt(t)}</td>`).join('')}<td class="cm">${fmt(ts.reduce((a,b)=>a+b,0))}</td></tr>`;
