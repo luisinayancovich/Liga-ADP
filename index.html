@@ -347,8 +347,7 @@ function setR(by,el){RBy=by;document.querySelectorAll('[id^="rb"]').forEach(c=>c
 function gf(){return AV.filter(v=>F.semana.has(v.semana)&&F.familia.has(v.familia)&&F.pago.has(v.pago));}
 function fmt(n){
   if(n===null||n===undefined)return'—';
-  if(Math.abs(n)>=1000000)return'$'+(n/1000000).toFixed(1).replace('.',',')+'M';
-  if(Math.abs(n)>=1000)return'$'+(n/1000).toFixed(1).replace('.',',')+'K';  return'$'+Math.round(n).toLocaleString('es-AR');
+  return '$' + Math.round(n).toLocaleString('es-AR');
 }
 function fN(n,d=0){return(n===null||n===undefined)?'—':parseFloat(n).toLocaleString('es-AR',{maximumFractionDigits:d});}
 
