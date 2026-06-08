@@ -351,9 +351,21 @@ function fmt(n){
 }
 function fN(n,d=0){return(n===null||n===undefined)?'—':parseFloat(n).toLocaleString('es-AR',{maximumFractionDigits:d});}
 
-const CDef={responsive:true,maintainAspectRatio:true,
-  plugins:{legend:{labels:{color:'#888',font:{size:11,family:'DM Sans'},padding:10}},tooltip:{backgroundColor:'#1c1c1c',borderColor:'#363636',borderWidth:1,titleColor:'#f2f2f2',bodyColor:'#888',padding:10}},
-  scales:{x:{ticks:{color:'#666',font:{size:11}},grid:{color:'#262626'}},y:{ticks:{color:'#666',font:{size:11},callback:v=>'$'+Math.round(v).toLocaleString('es-AR')},grid:{color:'#262626'}}}};
+  const CDef={
+  responsive:true,maintainAspectRatio:true,
+  plugins:{
+    legend:{labels:{color:'#888',font:{size:11,family:'DM Sans'},padding:10}},
+    tooltip:{
+      backgroundColor:'#1c1c1c',borderColor:'#363636',borderWidth:1,titleColor:'#f2f2f2',bodyColor:'#888',padding:10,
+      callbacks:{label:ctx=>(ctx.dataset.label?ctx.dataset.label+': ':'')+fmt(ctx.raw)}
+    }
+  },
+  scales:{
+    x:{ticks:{color:'#666',font:{size:11}},grid:{color:'#262626'}},
+    y:{ticks:{color:'#666',font:{size:11},callback:v=>fmt(v)},grid:{color:'#262626'}}
+  }
+};
+  
 function mk(id,cfg){if(CH[id]){CH[id].destroy();delete CH[id];}CH[id]=new Chart(document.getElementById(id),cfg);}
 
 function renderKPIs(d){
