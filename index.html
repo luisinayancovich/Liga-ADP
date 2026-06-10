@@ -39,7 +39,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .fbar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
 .fl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-right:2px}
 .fg{display:flex;gap:6px;align-items:center}
-.chip{padding:5px 12px;background:var(--surface2);border:1px solid #border;border-radius:20px;font-size:12px;cursor:pointer;transition:all .15s;color:var(--muted);white-space:nowrap;user-select:none}
+.chip{padding:5px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;font-size:12px;cursor:pointer;transition:all .15s;color:var(--muted);white-space:nowrap;user-select:none}
 .chip:hover{border-color:var(--brand);color:var(--text)}.chip.active{background:var(--brand-dim);border-color:var(--brand);color:var(--brand);font-weight:600}
 .fsep{width:1px;height:24px;background:var(--border)}
 .frst{margin-left:auto;padding:5px 12px;background:transparent;border:1px solid var(--border);border-radius:20px;font-size:11px;cursor:pointer;color:var(--muted);transition:all .15s}
@@ -268,16 +268,18 @@ function parseFecha(cell){
   return null;
 }
 
+// CORRECCIÓN CENTRAL: Mapeo original restaurado para que coincida exacto con las columnas del Sheet del Dashboard
 function pVentas(tbl){
   const hs=tbl.cols.map(c=>(c.label||c.id||'').toLowerCase().trim());
   const ix=n=>hs.findIndex(h=>h.includes(n));
-  const iS=ix('semana'),iC=ix('caja'),iSb=ix('producto'),iF=ix('categoría');
-  const iCt=ix('cantidad'),iSt=ix('subtotal'),iP=ix('tipo'),iCo=ix('consumidor');
-  const iFe=hs.findIndex(h=>h==='fecha y hora');
+  const iS=ix('semana'),iC=ix('caja'),iSb=ix('subproducto'),iF=ix('familia');
+  const iCt=ix('cantidad'),iSt=ix('subtotal'),iP=ix('medio de pago'),iCo=ix('consumicion');
+  const iFe=hs.findIndex(h=>h==='fecha');
   return tbl.rows.flatMap(row=>{
     const c=row.c||[];
     const sem=cn(c[iS]),fam=cs(c[iF]),caja=cs(c[iC]),pago=cs(c[iP]),subtotal=cn(c[iSt]);
     if(!sem||subtotal===null||!fam||!caja||!pago)return[];
+    if(!['Bebida','Comida','Kiosco','Insumos'].includes(fam))return[];
     return[{semana:String(Math.round(sem)),caja,sub:cs(c[iSb]),familia:fam,qty:cn(c[iCt])||0,sub_total:subtotal,pago,cons:cs(c[iCo]),fecha:parseFecha(c[iFe])}];
   });
 }
@@ -475,8 +477,7 @@ function renderStock(){
   }).join('');
 }
 
-// ===== NUEVAS FUNCIONES PARA EL DRILLDOWN DE CONSUMICIONES =====
-
+// ===== DRILLDOWN INTERACTIVO DE CONSUMICIONES =====
 function seleccionarPersonaCons(nombre) {
   const input = document.getElementById('buscador-cons');
   if (input) {
@@ -488,7 +489,7 @@ function seleccionarPersonaCons(nombre) {
 function renderConsDetalle() {
   const busqueda = document.getElementById('buscador-cons') ? document.getElementById('buscador-cons').value.trim().toLowerCase() : '';
   
-  // Filtramos los consumos por las semanas activas en los chips de arriba
+  // Filtramos consumiciones exclusivamente por semanas activas en el menú superior
   let cv = AV.filter(v => v.pago === 'Consumición' && F.semana.has(v.semana));
   
   if (busqueda) {
@@ -498,10 +499,10 @@ function renderConsDetalle() {
     document.getElementById('cons-detalle-sub').textContent = 'Mostrando todos los consumos del finde';
   }
   
-  // Agrupamos por producto para consolidar cantidades y totales
+  // Consolidamos cantidades y montos por producto
   const desglose = {};
   cv.forEach(v => {
-    const prod = v.producto || v.sub || '(Producto sin nombre)';
+    const prod = v.sub || '(Producto sin nombre)';
     if (!desglose[prod]) {
       desglose[prod] = { qty: 0, total: 0 };
     }
@@ -551,7 +552,6 @@ function renderCons(){
   document.getElementById('cnbody').innerHTML=pers.map(p=>{
     const ts=SEMS.map(s=>bp[p][s]||0);
     const pEscaped = p.replace(/'/g, "\\'");
-    // HACEMOS LAS FILAS CLICKEABLES
     return `<tr style="cursor:pointer;" onclick="seleccionarPersonaCons('${pEscaped}')" title="Clic para ver detalle de ${p}">
       <td style="font-weight:600; color:var(--brand); text-decoration:underline;">${p}</td>
       ${ts.map(t=>`<td>${fmt(t)}</td>`).join('')}
@@ -559,7 +559,7 @@ function renderCons(){
     </tr>`;
   }).join('')+`<tr style="border-top:2px solid var(--border)"><td style="font-weight:700">TOTAL</td>${SEMS.map(s=>`<td style="font-weight:600">${fmt(cv.filter(v=>v.semana===s).reduce((a,v)=>a+v.sub_total,0))}</td>`).join('')}<td class="cm" style="font-size:18px">${fmt(tot)}</td></tr>`;
 
-  // Renderizamos el desglose de productos al cargar la pestaña
+  // Renderiza automáticamente los productos consumidos de la vista actual
   renderConsDetalle();
 }
 
