@@ -86,7 +86,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .config-input { padding:6px 12px; border-radius:8px; border:1px solid #333; background:#111; color:#e5e5e5; font-size:13px; box-sizing:border-box; outline:none; }
 .config-input:focus { border-color: var(--brand); }
 ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--surface)}::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
-@media(max-width:900px){.c3,.c2,.c2b{grid-template-columns:1fr}.kgrid{grid-template-columns:repeat(auto-fit,minmax(170px,1fr)).hdr{padding:12px 16px}.page{padding:14px 16px}}
+@media(max-width:900px){.c3,.c2,.c2b{grid-template-columns:1fr}.kgrid{grid-template-columns:repeat(2,1fr)}.hdr{padding:12px 16px}.page{padding:14px 16px}}
 </style>
 </head>
 <body>
@@ -230,7 +230,7 @@ const CFam={Bebida:'#3b82f6',Comida:'#22c55e',Kiosco:'#f59e0b',Insumos:'#a855f7'
 const CPag={Efectivo:'#22c55e','QR MP':'#3b82f6','Consumición':'#ef4444'};
 const CCaj=['#c45401','#e8a260','#f2c590','#aaaaaa'];
 let AV=[],AS=[],SEMS=[],CAJAS=[],skSem=null,RBy='monto',SEM_DATES={};
-const F={semana:new Set(),family:new Set(['Bebida','Comida','Kiosco','Insumos']),pago:new Set(['Efectivo','QR MP','Consumición'])};
+const F={semana:new Set(),familia:new Set(['Bebida','Comida','Kiosco','Insumos']),pago:new Set(['Efectivo','QR MP','Consumición'])};
 let CH={};const SL={};
 
 function gviz(sh){
@@ -252,7 +252,6 @@ function gviz(sh){
     document.head.appendChild(sc);
   });
 }
-// Ajustes de conversión de celdas
 function cv(c){return(!c||c.v===null||c.v===undefined)?null:c.v}
 function cn(c){const v=cv(c);if(v===null)return null;const n=parseFloat(String(v).replace(',','.'));return isNaN(n)?null:n}
 function cs(c){const v=cv(c);return v===null?'':String(v).trim()}
@@ -269,22 +268,31 @@ function parseFecha(cell){
   return null;
 }
 
-// CORRECCIÓN CENTRAL: Cambiamos el mapeo para que apunte a la columna 'subtotal2' que creaste al final
+// CORRECCIÓN BLINDADA: Mapeo con sistema de respaldo automático (Fallback) entre Subtotal2 y el Subtotal clásico
 function pVentas(tbl){
   const hs=tbl.cols.map(c=>(c.label||c.id||'').toLowerCase().trim());
   const ix=n=>hs.findIndex(h=>h.includes(n));
   const iS=ix('semana'),iC=ix('caja'),iSb=ix('subproducto'),iF=ix('familia');
   const iCt=ix('cantidad'),iP=ix('medio de pago'),iCo=ix('consumicion');
   const iFe=hs.findIndex(h=>h==='fecha');
-  
-  // Coincidencia exacta con 'subtotal2' para que use directamente tu nueva columna con descuento
-  const iSt2=hs.findIndex(h=>h==='subtotal2'); 
+  const iSt=hs.findIndex(h=>h==='subtotal'); // Respaldo por si subtotal2 viene vacío
+  const iSt2=hs.findIndex(h=>h.includes('subtotal2'));
   
   return tbl.rows.flatMap(row=>{
     const c=row.c||[];
-    const sem=cn(c[iS]),fam=cs(c[iF]),caja=cs(c[iC]),pago=cs(c[iP]),subtotal2=cn(c[iSt2]);
-    if(!sem||subtotal2===null||!fam||!caja||!pago)return[];
+    const sem=cn(c[iS]),fam=cs(c[iF]),caja=cs(c[iC]),pago=cs(c[iP]);
+    
+    if(!sem||!fam||!caja||!pago)return [];
     if(!['Bebida','Comida','Kiosco','Insumos'].includes(fam))return[];
+    
+    // SISTEMA FALLBACK: Si subtotal2 no existe o viene null (celda en blanco), salta directo a la columna subtotal común
+    let subtotal2 = iSt2 !== -1 ? cn(c[iSt2]) : null;
+    if (subtotal2 === null && iSt !== -1) {
+      subtotal2 = cn(c[iSt]);
+    }
+    
+    // Si ambas columnas están vacías en esa fila, recién ahí la salteamos
+    if(subtotal2 === null) return [];
     
     return[{
       semana:String(Math.round(sem)),
@@ -292,7 +300,7 @@ function pVentas(tbl){
       sub:cs(c[iSb]),
       familia:fam,
       qty:cn(c[iCt])||0,
-      sub_total:subtotal2, // Se asigna directamente el valor neto de tu columna sin cuentas manuales en JS
+      sub_total:subtotal2,
       pago,
       cons:cs(c[iCo]),
       fecha:parseFecha(c[iFe])
