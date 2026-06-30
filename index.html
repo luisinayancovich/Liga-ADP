@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard Cantina · Altos del Paracao</title>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght=400;500;600;700&family=DM+Sans:wght=300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root{--brand:#c45401;--brand-dim:rgba(196,84,1,.15);--bg:#111;--surface:#1c1c1c;--surface2:#262626;--surface3:#303030;--border:#363636;--text:#f2f2f2;--muted:#888;--dim:#555;--green:#22c55e;--red:#ef4444;--yel:#f59e0b;--blue:#3b82f6}
@@ -256,22 +256,16 @@ function cv(c){return(!c||c.v===null||c.v===undefined)?null:c.v}
 function cn(c){const v=cv(c);if(v===null)return null;const n=parseFloat(String(v).replace(',','.'));return isNaN(n)?null:n}
 function cs(c){const v=cv(c);return v===null?'':String(v).trim()}
 
-// FIJACIÓN ABSOLUTA DE FECHA EN UTC EVITANDO EL DESFASE HORARIO (-3 hs)
 function parseFecha(cell){
   if(!cell) return null;
   const val = cell.v;
   if(!val) return null;
   
-  // Caso 1: Viene como objeto nativo gviz "Date(AAAA,MM,DD)"
   if(typeof val === 'string' && val.startsWith('Date(')){
     const m = val.match(/Date\((\d+),(\d+),(\d+)/);
-    if(m){
-      // Forzamos la fecha tratándola en formato de milisegundos UTC exactos
-      return new Date(Date.UTC(parseInt(m[1]), parseInt(m[2]), parseInt(m[3])));
-    }
+    if(m) return new Date(Date.UTC(parseInt(m[1]), parseInt(m[2]), parseInt(m[3])));
   }
   
-  // Caso 2: Viene como string / texto plano ("DD/MM/AAAA")
   const f = String(cell.f || val || '').trim().split(' ')[0];
   if(f.includes('/')){
     const p = f.split('/');
@@ -369,16 +363,25 @@ async function loadData(){
 
 function setS(t,tx){const el=document.getElementById('sbdg');el.className='sbadge s-'+t;el.textContent=tx;}
 
+// DISEÑO ESTRUCTURADO: MUESTRA EL NÚMERO DE SEMANA Y SU RANGO SIN DUPLICAR DÍAS REPETIDOS
 function buildSemChips(){
   const ct=document.getElementById('chsem');ct.innerHTML='';
   SEMS.forEach(s=>{
     const ch=document.createElement('div');ch.className='chip active';
     const dr=SEM_DATES[s];
-    let label='Sem '+s;
+    let label='Sem ' + s;
     if(dr){
       const d1=dr.min.getUTCDate(),m1=dr.min.getUTCMonth()+1;
       const d2=dr.max.getUTCDate(),m2=dr.max.getUTCMonth()+1;
-      label=d1===d2 && m1===m2 ? `${d1}/${m1}` : (m1===m2 ? `${d1}-${d2}/${m1}` : `${d1}/${m1}-${d2}/${m2}`);
+      
+      // Si el mínimo y el máximo de días y meses coinciden, evitamos duplicarlo
+      if(d1===d2 && m1===m2){
+        label=`Sem ${s} (${d1}/${m1})`;
+      } else if(m1===m2){
+        label=`Sem ${s} (${d1}-${d2}/${m1})`;
+      } else {
+        label=`Sem ${s} (${d1}/${m1}-${d2}/${m2})`;
+      }
     }
     SL[s]=label;
     ch.textContent=label;
