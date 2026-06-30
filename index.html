@@ -256,55 +256,43 @@ function cv(c){return(!c||c.v===null||c.v===undefined)?null:c.v}
 function cn(c){const v=cv(c);if(v===null)return null;const n=parseFloat(String(v).replace(',','.'));return isNaN(n)?null:n}
 function cs(c){const v=cv(c);return v===null?'':String(v).trim()}
 
+// CORRECCIÓN DE LECTURA DE FECHA: Forzamos la conversión a texto para que no falle si la celda viene como texto plano o formateada.
 function parseFecha(cell){
   if(!cell)return null;
   if(cell.v&&typeof cell.v==='string'&&cell.v.startsWith('Date(')){
     const m=cell.v.match(/Date\((\d+),(\d+),(\d+)/);
     if(m)return new Date(+m[1],+m[2],+m[3]);
   }
-  const f=cell.f||'';
+  const f=String(cell.f || cell.v || '');
   const p=f.split(' ')[0].split('/');
   if(p.length>=3){const d=new Date(+p[2],+p[1]-1,+p[0]);if(!isNaN(d))return d;}
   return null;
 }
 
-// CORRECCIÓN BLINDADA: Mapeo con sistema de respaldo automático (Fallback) entre Subtotal2 y el Subtotal clásico
+// CORRECCIÓN CLAVE: Cambiado de h==='fecha' a h.includes('fecha') mediante el helper 'ix' para que mapee bien se llame "Fecha", "Fecha y hora" o "FECHA 2"
 function pVentas(tbl){
   const hs=tbl.cols.map(c=>(c.label||c.id||'').toLowerCase().trim());
   const ix=n=>hs.findIndex(h=>h.includes(n));
   const iS=ix('semana'),iC=ix('caja'),iSb=ix('subproducto'),iF=ix('familia');
   const iCt=ix('cantidad'),iP=ix('medio de pago'),iCo=ix('consumicion');
-  const iFe=hs.findIndex(h=>h==='fecha');
-  const iSt=hs.findIndex(h=>h==='subtotal'); // Respaldo por si subtotal2 viene vacío
+  
+  const iFe=ix('fecha'); // <- Cambiado aquí de exacto a flexible
+  const iSt=hs.findIndex(h=>h==='subtotal'); 
   const iSt2=hs.findIndex(h=>h.includes('subtotal2'));
   
   return tbl.rows.flatMap(row=>{
     const c=row.c||[];
     const sem=cn(c[iS]),fam=cs(c[iF]),caja=cs(c[iC]),pago=cs(c[iP]);
-    
-    if(!sem||!fam||!caja||!pago)return [];
+    if(!sem||!fam||!caja||!pago)return[];
     if(!['Bebida','Comida','Kiosco','Insumos'].includes(fam))return[];
     
-    // SISTEMA FALLBACK: Si subtotal2 no existe o viene null (celda en blanco), salta directo a la columna subtotal común
     let subtotal2 = iSt2 !== -1 ? cn(c[iSt2]) : null;
     if (subtotal2 === null && iSt !== -1) {
       subtotal2 = cn(c[iSt]);
     }
-    
-    // Si ambas columnas están vacías en esa fila, recién ahí la salteamos
     if(subtotal2 === null) return [];
     
-    return[{
-      semana:String(Math.round(sem)),
-      caja,
-      sub:cs(c[iSb]),
-      familia:fam,
-      qty:cn(c[iCt])||0,
-      sub_total:subtotal2,
-      pago,
-      cons:cs(c[iCo]),
-      fecha:parseFecha(c[iFe])
-    }];
+    return[{semana:String(Math.round(sem)),caja,sub:cs(c[iSb]),familia:fam,qty:cn(c[iCt])||0,sub_total:subtotal2,pago,cons:cs(c[iCo]),fecha:parseFecha(c[iFe])}];
   });
 }
 
